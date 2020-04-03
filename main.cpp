@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 
 #pragma region Init and Load Textures
 	//在加载图片前进行图片反转处理
-	//stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(true);
 	//创建纹理
 	unsigned int texture1, texture2;
 	// 加载并生成纹理
