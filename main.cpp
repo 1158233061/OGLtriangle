@@ -89,7 +89,7 @@ Camera myCamera(glm::vec3(0, 0, 3.0f), glm::radians(0.0f), glm::radians(180.0f),
 
 #pragma region Light Declare
 LightDiretional LightDir(
-	glm::vec3(1.0f, 1.0f, 2.0f),
+	glm::vec3(1.0f, 1.0f, 3.0f),
 	glm::vec3(glm::radians(45.0f), glm::radians(45.0f), 0)
 );
 #pragma endregion
@@ -134,11 +134,11 @@ int main(int argc, char* argv[])
 #pragma endregion
 
 #pragma region Init shader Program
-	Shader* testShader = new Shader("vertexSource.vert", "fragmentSource.frag");
+	Shader* lightShader = new Shader("vertexSource.vert", "fragmentSource.frag");
 #pragma endregion
 
 #pragma region Init Material
-	Material* myMaterial = new Material(testShader,
+	Material* myMaterial = new Material(lightShader,
 		glm::vec3(1.0f, 0.5f, 0.3f),
 		glm::vec3(1.0f, 0.5f, 0.31f),
 		glm::vec3(0.5f, 0.5f, 0.5f),
@@ -183,10 +183,10 @@ int main(int argc, char* argv[])
 	//在加载图片前进行图片反转处理
 	stbi_set_flip_vertically_on_load(true);
 	//创建纹理
-	unsigned int texture1, texture2;
+	unsigned int diffuseTexture, specularTexture;
 	// 加载并生成纹理
-	texture1 = LoadImageToGPU("container2.png", GL_RGBA, GL_RGBA, 0);
-	texture2 = LoadImageToGPU("container2_specular.png", GL_RGBA, GL_RGBA, 1);
+	diffuseTexture = LoadImageToGPU("container2.png", GL_RGBA, GL_RGBA, 0);
+	specularTexture = LoadImageToGPU("container2_specular.png", GL_RGBA, GL_RGBA, 1);
 
 	// 为当前绑定的纹理对象设置环绕、过滤方式
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -198,10 +198,7 @@ int main(int argc, char* argv[])
 #pragma region Prepare MVP matrices
 	//空间变换代码
 	glm::mat4 modelMat;
-	//modelMat = glm::rotate(modelMat, glm::radians(-1.0f), glm::vec3(1.0f, 1.0, 0.5f));
 	glm::mat4 viewMat;
-	//viewMat = glm::translate(viewMat, glm::vec3(0, 0, -3.0f));
-	//viewMat = myCamera.GetViewMatrix();
 	glm::mat4 projMat;
 	projMat = glm::perspective(glm::radians(45.0f), 800.0f / 800.0f, 0.1f, 100.0f);
 #pragma endregion
@@ -213,59 +210,48 @@ int main(int argc, char* argv[])
 		// 输入
 		processInput(window);
 
-		// 清屏
+		// 渲染
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// 激活光照着色器
+		lightShader->use();
+		lightShader->setVec3("lightDir", LightDir.direction.x, LightDir.direction.y, LightDir.direction.z);
+		
+		// 配置光照
+		lightShader->setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+		lightShader->setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+		lightShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
-		//更新摄像机向量
+		// 配置材质
+		myMaterial->shader->setVec3("material.ambient", myMaterial->ambient);
+		myMaterial->shader->setVec3("material.diffuse", myMaterial->diffuse);
+		myMaterial->shader->setVec3("material.specular", myMaterial->specular);
+		myMaterial->shader->setFloat("material.shininess", myMaterial->shininess);
+
+		// 配置空间矩阵
+		lightShader->setMat4("viewMat", viewMat);
+		lightShader->setMat4("projMat", projMat);
+
+		// 更新摄像机向量
 		viewMat = myCamera.GetViewMatrix();
+
+		// 绑定贴图
+		glBindTexture(GL_TEXTURE_2D, diffuseTexture);
+		glBindTexture(GL_TEXTURE_2D, specularTexture);
+		// 渲染容器
+		glBindVertexArray(VAO);
 
 		for (unsigned int i = 0; i < 10; i++)
 		{
-			//Set Model matrix
+			// 计算模型矩阵
 			modelMat = glm::translate(glm::mat4(1.0f), cubePositions[i]);
-
-			//Set View and Projection Matrices here if you want
-			//
-
-			//Set Material -> Shader Program
-			testShader->use();
-			//更新摄像机位置
-			testShader->setVec3("viewPos", myCamera.Position);
-			//Set Material -> Texture
-			glBindTexture(GL_TEXTURE_2D, texture1);
-			glBindTexture(GL_TEXTURE_2D, texture2);
-			//Set Material -> Uniforms
-			//配置纹理
-			//glUniform1i(glGetUniformLocation(testShader->ID, "ourTexture"), 0);
-			//glUniform1i(glGetUniformLocation(testShader->ID, "ourTexture2"), 1);
-			//配置空间矩阵
-			testShader->setMat4("modelMat", modelMat);
-			testShader->setMat4("viewMat", viewMat);
-			testShader->setMat4("projMat", projMat);
-
-			//配置物体颜色
-			testShader->setVec3("objectColor", 1.0f, 1.0f, 1.0f);
-			//配置光照
-			testShader->setVec3("lightDir", LightDir.direction.x, LightDir.direction.y, LightDir.direction.z);
-			testShader->setVec3("light.position", 2.0f, 5.0f, 5.0f);
-			testShader->setVec3("light.ambient", 0.5f, 0.5f, 0.5f);
-			testShader->setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-			testShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+			// 把每个模型矩阵信息传给光照着色器
+			lightShader->setMat4("modelMat", modelMat);
 
 
-			myMaterial->shader->setVec3("material.ambient", myMaterial->ambient);
-			myMaterial->shader->setVec3("material.diffuse", myMaterial->diffuse);
-			myMaterial->shader->setVec3("material.specular", myMaterial->specular);
-			myMaterial->shader->setFloat("material.shininess", myMaterial->shininess);
-
-			//Set Model
-			glBindVertexArray(VAO);
-			//Draw Call
+			// 绘制箱子
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-			//cube.Draw(myMaterial->shader);
-			//model.Draw(myMaterial->shader);
 		}
 
 		// 检查并调用事件，交换缓冲，为下一次做准备
