@@ -149,16 +149,16 @@ int main(int argc, char* argv[])
 	//Mesh cube(vertices);
 	//Model model(exePath.substr(0, exePath.find_last_of('\\')) + "\\model\\nanosuit.obj");
 #pragma region Init and Load Models to VAO, VBO
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
+	unsigned int cubeVAO;
+	glGenVertexArrays(1, &cubeVAO);
+	unsigned int cubeVBO;
+	glGenBuffers(1, &cubeVBO);
 
 	//初始化代码（只运行一次 (除非你的物体频繁改变))
 	// 1. 绑定VAO
-	glBindVertexArray(VAO);
+	glBindVertexArray(cubeVAO);
 	// 2. 把我们的顶点数组复制到一个顶点缓冲中，供OpenGL使用
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// 4. 设定顶点属性指针
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
 		glBindTexture(GL_TEXTURE_2D, diffuseTexture);
 		glBindTexture(GL_TEXTURE_2D, specularTexture);
 		// 渲染容器
-		glBindVertexArray(VAO);
+		glBindVertexArray(cubeVAO);
 
 		for (unsigned int i = 0; i < 10; i++)
 		{
@@ -259,9 +259,9 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 		myCamera.UpdateCameraPos();
 	}
-	//清空VAO,VBO
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
+	//清空VAO,cubeVBO
+	glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteBuffers(1, &cubeVBO);
 
 	//退出程序
 	glfwTerminate();
